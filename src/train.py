@@ -1,30 +1,39 @@
+import os
+import pandas as pd
+from dotenv import load_dotenv
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report
 
-# --- Zadanie 3: wczytanie danych jako DataFrame ---
-iris = load_iris(as_frame=True)
-df = iris.frame                      # cechy + kolumna 'target'
+# Wczytanie konfiguracji z pliku .env (wartości domyślne na wypadek braku klucza)
+load_dotenv()
+DATA_PATH = os.getenv("DATA_PATH", "data/iris.csv")
+TEST_SIZE = float(os.getenv("TEST_SIZE", 0.2))
+RANDOM_SEED = int(os.getenv("RANDOM_SEED", 42))
 
-print(df.head())                     # pierwsze wiersze
-print("Rozmiar:", df.shape)          # (150, 5)
-print(df.describe())                 # statystyki opisowe
+# Jednorazowo zapisujemy zbiór iris do CSV pod ścieżką z .env
+if not os.path.exists(DATA_PATH):
+    os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
+    load_iris(as_frame=True).frame.to_csv(DATA_PATH, index=False)
 
-# --- Zadanie 4: podział 80/20 i trening ---
+df = pd.read_csv(DATA_PATH)
+print(df.head())
+print("Rozmiar:", df.shape)
+print(df.describe())
+
 X = df.drop(columns="target")
 y = df["target"]
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
+    X, y, test_size=TEST_SIZE, random_state=RANDOM_SEED
 )
 
 model = LogisticRegression(max_iter=200)
-model.fit(X_train, y_train)          # uczymy tylko na zbiorze treningowym
+model.fit(X_train, y_train)
 
-# --- Zadanie 5: ocena na zbiorze testowym ---
 y_pred = model.predict(X_test)
 acc = accuracy_score(y_test, y_pred)
-report = classification_report(y_test, y_pred, target_names=iris.target_names)
+report = classification_report(y_test, y_pred, target_names=load_iris().target_names)
 
 print(f"Accuracy: {acc:.4f}")
 print(report)
